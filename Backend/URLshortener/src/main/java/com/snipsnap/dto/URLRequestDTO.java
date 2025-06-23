@@ -16,6 +16,9 @@ public class URLRequestDTO {
 
     private String customCode;
 
+    private boolean generateQRCode; // true if QR code should be generated
+
+
     public URLRequestDTO() {}
 
     public URLRequestDTO(String originalUrl, Integer expiryDays) {
