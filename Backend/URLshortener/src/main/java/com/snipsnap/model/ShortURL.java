@@ -1,3 +1,4 @@
+// ✅ ShortURL.java
 package com.snipsnap.model;
 
 import jakarta.persistence.*;
@@ -18,64 +19,33 @@ public class ShortURL {
     private String originalUrl;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime expiryAt;
 
     private int clickCount = 0;
 
-    // Constructors
-    public ShortURL() {}
+    @Lob
+    @Column(name = "qr_image", columnDefinition = "LONGTEXT")
+    private String qrImage;  // ✅ New field to store QR image in DB
 
-    public ShortURL(String shortCode, String originalUrl, LocalDateTime createdAt, LocalDateTime expiryAt) {
-        this.shortCode = shortCode;
-        this.originalUrl = originalUrl;
-        this.createdAt = createdAt;
-        this.expiryAt = expiryAt;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    // Getters & Setters
+    public String getShortCode() { return shortCode; }
+    public void setShortCode(String shortCode) { this.shortCode = shortCode; }
 
-    public Long getId() {
-        return id;
-    }
+    public String getOriginalUrl() { return originalUrl; }
+    public void setOriginalUrl(String originalUrl) { this.originalUrl = originalUrl; }
 
-    public String getShortCode() {
-        return shortCode;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public void setShortCode(String shortCode) {
-        this.shortCode = shortCode;
-    }
+    public LocalDateTime getExpiryAt() { return expiryAt; }
+    public void setExpiryAt(LocalDateTime expiryAt) { this.expiryAt = expiryAt; }
 
-    public String getOriginalUrl() {
-        return originalUrl;
-    }
+    public int getClickCount() { return clickCount; }
+    public void setClickCount(int clickCount) { this.clickCount = clickCount; }
 
-    public void setOriginalUrl(String originalUrl) {
-        this.originalUrl = originalUrl;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getExpiryAt() {
-        return expiryAt;
-    }
-
-    public void setExpiryAt(LocalDateTime expiryAt) {
-        this.expiryAt = expiryAt;
-    }
-
-    public int getClickCount() {
-        return clickCount;
-    }
-
-    public void setClickCount(int clickCount) {
-        this.clickCount = clickCount;
-    }
+    public String getQrImage() { return qrImage; }
+    public void setQrImage(String qrImage) { this.qrImage = qrImage; }
 }

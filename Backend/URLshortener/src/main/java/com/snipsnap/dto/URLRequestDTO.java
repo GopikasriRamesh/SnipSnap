@@ -1,5 +1,6 @@
 package com.snipsnap.dto;
 
+import com.snipsnap.enums.GenerationType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
@@ -16,7 +17,10 @@ public class URLRequestDTO {
 
     private String customCode;
 
-    private boolean generateQRCode; // true if QR code should be generated
+    private boolean generateQRCode;
+
+    private GenerationType generationType;
+    // true if QR code should be generated
 
 
     public URLRequestDTO() {}
@@ -48,5 +52,13 @@ public class URLRequestDTO {
 
     public void setCustomCode(String customCode) {
         this.customCode = customCode;
+    }
+
+    public GenerationType getGenerationType() {
+        return generationType;
+    }
+
+    public void setGenerationType(GenerationType generationType) {
+        this.generationType = generationType;
     }
 }

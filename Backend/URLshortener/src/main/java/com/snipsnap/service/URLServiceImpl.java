@@ -1,15 +1,24 @@
 package com.snipsnap.service;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.snipsnap.dto.URLRequestDTO;
 import com.snipsnap.dto.URLResponseDTO;
+import com.snipsnap.enums.GenerationType;
 import com.snipsnap.exception.URLNotFoundException;
 import com.snipsnap.model.ShortURL;
 import com.snipsnap.repository.URLRepository;
-import com.snipsnap.util.LinkValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,24 +28,12 @@ public class URLServiceImpl implements URLService {
     @Autowired
     private URLRepository urlRepository;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     @Override
     public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
-
-        // ✅ Check for spam/malicious URLs
-        if (LinkValidator.isMalicious(requestDTO.getOriginalUrl())) {
-            throw new IllegalArgumentException("⚠️ Unsafe or spam URL detected. Please use a safe link.");
-        }
-
-        // ✅ Check for custom code
-        String shortCode;
-        if (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty()) {
-            if (urlRepository.findByShortCode(requestDTO.getCustomCode()).isPresent()) {
-                throw new IllegalArgumentException("Custom short code already exists.");
-            }
-            shortCode = requestDTO.getCustomCode();
-        } else {
-            shortCode = generateShortCode();
-        }
+        String shortCode = generateShortCode();
 
         ShortURL shortURL = new ShortURL();
         shortURL.setShortCode(shortCode);
@@ -45,11 +42,29 @@ public class URLServiceImpl implements URLService {
 
         int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
         shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
-        shortURL.setClickCount(0);
+
+        // ✅ Generate QR only if requested
+        if (requestDTO.getGenerationType() == GenerationType.QR_CODE_ONLY ||
+                requestDTO.getGenerationType() == GenerationType.BOTH) {
+            try {
+                String fullUrl = baseUrl + "/" + shortCode;
+                String qrFilePath = generateAndSaveQRCode(fullUrl, shortCode);
+                shortURL.setQrImage(qrFilePath); // Save path, not binary string
+
+            } catch (Exception e) {
+                throw new RuntimeException("QR code generation failed");
+            }
+        }
 
         ShortURL saved = urlRepository.save(shortURL);
 
-        return new URLResponseDTO(saved.getShortCode(), saved.getOriginalUrl());
+        if (requestDTO.getGenerationType() == GenerationType.SHORT_CODE_ONLY) {
+            return new URLResponseDTO(saved.getShortCode(), saved.getOriginalUrl(), null);
+        } else if (requestDTO.getGenerationType() == GenerationType.QR_CODE_ONLY) {
+            return new URLResponseDTO(null, saved.getOriginalUrl(), "QR Stored in DB");
+        } else {
+            return new URLResponseDTO(saved.getShortCode(), saved.getOriginalUrl(), "QR Stored in DB");
+        }
     }
 
     @Override
@@ -75,4 +90,24 @@ public class URLServiceImpl implements URLService {
     private String generateShortCode() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
+
+    private String generateAndSaveQRCode(String fullUrl, String shortCode) throws WriterException, IOException {
+        int width = 300;
+        int height = 300;
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(fullUrl, BarcodeFormat.QR_CODE, width, height);
+
+        String folderPath = "qr-codes";
+        java.io.File directory = new java.io.File(folderPath);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        String filePath = folderPath + "/" + shortCode + ".png";
+        java.nio.file.Path path = java.nio.file.FileSystems.getDefault().getPath(filePath);
+        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+
+        return filePath; // ✅ file path to save in DB
+    }
+
 }

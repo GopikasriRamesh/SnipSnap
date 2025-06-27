@@ -23,22 +23,21 @@ public class URLController {
     @Autowired
     private URLRepository urlRepository;
 
-    // ✅ POST /shorten — Create a short URL
+    // ✅ POST /shorten
     @PostMapping("/shorten")
-    public ResponseEntity<URLResponseDTO> createShortURL(
-            @RequestBody @Valid URLRequestDTO requestDTO) {
+    public ResponseEntity<URLResponseDTO> createShortURL(@RequestBody @Valid URLRequestDTO requestDTO) {
         URLResponseDTO responseDTO = urlService.shortenURL(requestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
-    // ✅ GET /{shortCode} — Redirect to the original URL
+    // ✅ GET /{shortCode}
     @GetMapping("/{shortCode}")
     public RedirectView redirectToOriginal(@PathVariable String shortCode) {
         String originalUrl = urlService.getOriginalURL(shortCode);
         return new RedirectView(originalUrl);
     }
 
-    // ✅ GET /stats/{shortCode} — Get stats like creation time, expiry, click count
+    // ✅ GET /stats/{shortCode}
     @GetMapping("/stats/{shortCode}")
     public ResponseEntity<URLStatsDTO> getURLStats(@PathVariable String shortCode) {
         ShortURL url = urlRepository.findByShortCode(shortCode)
@@ -54,4 +53,28 @@ public class URLController {
 
         return ResponseEntity.ok(stats);
     }
+    @GetMapping("/qr/{shortCode}")
+    public ResponseEntity<byte[]> getQRCode(@PathVariable String shortCode) {
+        ShortURL url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new URLNotFoundException("Short URL not found"));
+
+        String imagePath = url.getQrImage();
+        if (imagePath == null) {
+            throw new URLNotFoundException("QR code not available for this URL");
+        }
+
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(imagePath);
+            byte[] qrBytes = java.nio.file.Files.readAllBytes(path);
+
+            return ResponseEntity.ok()
+                    .header("Content-Type", "image/png")
+                    .header("Content-Disposition", "attachment; filename=\"" + shortCode + ".png\"")
+                    .body(qrBytes);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Could not read QR code image", e);
+        }
+    }
+
 }
