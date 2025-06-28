@@ -23,6 +23,15 @@ public class URLController {
     @Autowired
     private URLRepository urlRepository;
 
+    @RestController
+    public class HomeController {
+
+        @GetMapping("/")
+        public String home() {
+            return "🎉 SnipSnap Backend is Live!";
+        }
+    }
+
     // ✅ POST /shorten
     @PostMapping("/shorten")
     public ResponseEntity<URLResponseDTO> createShortURL(@RequestBody @Valid URLRequestDTO requestDTO) {
