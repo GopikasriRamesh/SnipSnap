@@ -24,7 +24,7 @@ public class ShortURL {
     private int clickCount = 0;
 
     @Lob
-    @Column(name = "qr_image", columnDefinition = "LONGTEXT")
+    @Column(name = "qr_image", columnDefinition = "TEXT")
     private String qrImage;  // ✅ New field to store QR image in DB
 
     // Getters and Setters
