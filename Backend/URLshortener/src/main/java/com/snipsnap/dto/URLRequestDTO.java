@@ -17,11 +17,9 @@ public class URLRequestDTO {
 
     private String customCode;
 
-    private boolean generateQRCode;
+    private boolean generateQRCode; // ✅ checkbox state (from UI)
 
-    private GenerationType generationType;
-    // true if QR code should be generated
-
+    private GenerationType generationType; // ✅ Optional: could be used instead of generateQRCode if needed
 
     public URLRequestDTO() {}
 
@@ -52,6 +50,14 @@ public class URLRequestDTO {
 
     public void setCustomCode(String customCode) {
         this.customCode = customCode;
+    }
+
+    public boolean isGenerateQRCode() {
+        return generateQRCode;
+    }
+
+    public void setGenerateQRCode(boolean generateQRCode) {
+        this.generateQRCode = generateQRCode;
     }
 
     public GenerationType getGenerationType() {

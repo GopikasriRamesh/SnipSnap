@@ -15,7 +15,7 @@ public class ShortURL {
     @Column(nullable = false, unique = true)
     private String shortCode;
 
-    @Column(nullable = false)
+    @Column(nullable = false,columnDefinition = "TEXT")
     private String originalUrl;
 
     private LocalDateTime createdAt;

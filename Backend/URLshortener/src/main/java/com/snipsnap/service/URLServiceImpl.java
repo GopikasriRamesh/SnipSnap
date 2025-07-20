@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,41 +31,44 @@ public class URLServiceImpl implements URLService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    @Override
-    public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
-        String shortCode = generateShortCode();
+   @Override
+public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
+    String shortCode = (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty())
+            ? requestDTO.getCustomCode()
+            : generateShortCode();
 
-        ShortURL shortURL = new ShortURL();
-        shortURL.setShortCode(shortCode);
-        shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
-        shortURL.setCreatedAt(LocalDateTime.now());
+    if (urlRepository.findByShortCode(shortCode).isPresent()) {
+        throw new RuntimeException("Custom short code already exists: " + shortCode);
+    }
 
-        int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
-        shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
+    ShortURL shortURL = new ShortURL();
+    shortURL.setShortCode(shortCode);
+    shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
+    shortURL.setCreatedAt(LocalDateTime.now());
 
-        // ✅ Generate QR only if requested
-        if (requestDTO.getGenerationType() == GenerationType.QR_CODE_ONLY ||
-                requestDTO.getGenerationType() == GenerationType.BOTH) {
-            try {
-                String fullUrl = baseUrl + "/" + shortCode;
-                String qrFilePath = generateAndSaveQRCode(fullUrl, shortCode);
-                shortURL.setQrImage(qrFilePath); // Save path, not binary string
+    int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
+    shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
 
-            } catch (Exception e) {
-                throw new RuntimeException("QR code generation failed");
-            }
-        }
-
-        ShortURL saved = urlRepository.save(shortURL);
-
-        if (requestDTO.getGenerationType() == GenerationType.SHORT_CODE_ONLY) {
-            return new URLResponseDTO(saved.getShortCode(), saved.getOriginalUrl(), null);
-        } else if (requestDTO.getGenerationType() == GenerationType.QR_CODE_ONLY) {
-            return new URLResponseDTO(null, saved.getOriginalUrl(), "QR Stored in DB");
-        } else {
-            return new URLResponseDTO(saved.getShortCode(), saved.getOriginalUrl(), "QR Stored in DB");
+    // ✅ Generate QR only if checkbox is selected
+    if (requestDTO.isGenerateQRCode()) {
+        try {
+            String fullUrl = baseUrl + "/" + shortCode;
+            String qrBase64 = generateQRCodeBase64(fullUrl);
+            shortURL.setQrImage(qrBase64);
+        } catch (Exception e) {
+            throw new RuntimeException("QR code generation failed");
         }
     }
+
+    ShortURL saved = urlRepository.save(shortURL);
+
+    return new URLResponseDTO(
+            saved.getShortCode(),
+            saved.getOriginalUrl(),
+            saved.getQrImage()
+    );
+}
+
 
     @Override
     public String getOriginalURL(String shortCode) {
@@ -91,23 +94,19 @@ public class URLServiceImpl implements URLService {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private String generateAndSaveQRCode(String fullUrl, String shortCode) throws WriterException, IOException {
-        int width = 300;
-        int height = 300;
-        QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(fullUrl, BarcodeFormat.QR_CODE, width, height);
+    // ✅ QR Code to Base64 string
+   private String generateQRCodeBase64(String text) throws WriterException, IOException {
+    int width = 300;
+    int height = 300;
 
-        String folderPath = "qr-codes";
-        java.io.File directory = new java.io.File(folderPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
+    QRCodeWriter qrCodeWriter = new QRCodeWriter();
+    BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
 
-        String filePath = folderPath + "/" + shortCode + ".png";
-        java.nio.file.Path path = java.nio.file.FileSystems.getDefault().getPath(filePath);
-        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+    byte[] qrBytes = outputStream.toByteArray();
 
-        return filePath; // ✅ file path to save in DB
-    }
+    return java.util.Base64.getEncoder().encodeToString(qrBytes);
+}
 
 }
