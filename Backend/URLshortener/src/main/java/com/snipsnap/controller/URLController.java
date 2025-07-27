@@ -63,28 +63,27 @@ public class URLController {
 
         return ResponseEntity.ok(stats);
     }
-    @GetMapping("/qr/{shortCode}")
-    public ResponseEntity<byte[]> getQRCode(@PathVariable String shortCode) {
+   // ✅ Serve QR Code directly from Base64
+@GetMapping("/qr/{shortCode}")
+public ResponseEntity<byte[]> getQRCode(@PathVariable String shortCode) {
+    try {
         ShortURL url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new URLNotFoundException("Short URL not found"));
 
-        String imagePath = url.getQrImage();
-        if (imagePath == null) {
+        String base64 = url.getQrImage();
+        if (base64 == null || base64.isEmpty()) {
             throw new URLNotFoundException("QR code not available for this URL");
         }
 
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(imagePath);
-            byte[] qrBytes = java.nio.file.Files.readAllBytes(path);
+        byte[] qrBytes = Base64.getDecoder().decode(base64);
 
-            return ResponseEntity.ok()
-                    .header("Content-Type", "image/png")
-                    .header("Content-Disposition", "attachment; filename=\"" + shortCode + ".png\"")
-                    .body(qrBytes);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Could not read QR code image", e);
-        }
+        return ResponseEntity.ok()
+                .header("Content-Type", "image/png")
+                .header("Content-Disposition", "inline; filename=\"" + shortCode + ".png\"")
+                .body(qrBytes);
+    } catch (Exception e) {
+        throw new RuntimeException("Could not read QR code image", e);
     }
+}
 
 }
