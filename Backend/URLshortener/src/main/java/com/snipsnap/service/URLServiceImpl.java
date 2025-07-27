@@ -54,7 +54,8 @@ public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
         try {
             String fullUrl = baseUrl + "/" + shortCode;
             String qrBase64 = generateQRCodeBase64(fullUrl);
-            shortURL.setQrImage(qrBase64);
+           // don’t store qrBase64, just keep it in memory
+
         } catch (Exception e) {
             throw new RuntimeException("QR code generation failed");
         }
@@ -63,10 +64,10 @@ public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
     ShortURL saved = urlRepository.save(shortURL);
 
     return new URLResponseDTO(
-            saved.getShortCode(),
-            saved.getOriginalUrl(),
-            saved.getQrImage()
-    );
+    saved.getShortCode(),
+    saved.getOriginalUrl(),
+    generateQRCodeBase64(baseUrl + "/" + saved.getShortCode())  // ✅ return dynamically
+);
 }
 
 

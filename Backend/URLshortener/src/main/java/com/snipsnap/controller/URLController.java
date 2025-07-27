@@ -67,24 +67,20 @@ public class URLController {
    // ✅ Serve QR Code directly from Base64
 @GetMapping("/qr/{shortCode}")
 public ResponseEntity<byte[]> getQRCode(@PathVariable String shortCode) {
-    try {
-        ShortURL url = urlRepository.findByShortCode(shortCode)
-                .orElseThrow(() -> new URLNotFoundException("Short URL not found"));
+    ShortURL url = urlRepository.findByShortCode(shortCode)
+            .orElseThrow(() -> new URLNotFoundException("Short URL not found"));
 
-        String base64 = url.getQrImage();
-        if (base64 == null || base64.isEmpty()) {
-            throw new URLNotFoundException("QR code not available for this URL");
-        }
-
-        byte[] qrBytes = Base64.getDecoder().decode(base64);
-
-        return ResponseEntity.ok()
-                .header("Content-Type", "image/png")
-                .header("Content-Disposition", "inline; filename=\"" + shortCode + ".png\"")
-                .body(qrBytes);
-    } catch (Exception e) {
-        throw new RuntimeException("Could not read QR code image", e);
+    String base64Image = url.getQrImage();
+    if (base64Image == null || base64Image.isEmpty()) {
+        throw new URLNotFoundException("QR code not available for this URL");
     }
+
+    byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+
+    return ResponseEntity.ok()
+            .header("Content-Type", "image/png")
+            .header("Content-Disposition", "inline; filename=\"" + shortCode + ".png\"")
+            .body(imageBytes);
 }
 
 }
