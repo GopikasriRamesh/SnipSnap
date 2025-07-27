@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState } from "react";
 import ShortenForm from "./components/ShortenForm";
 import ResultBox from "./components/ResultBox";
@@ -27,9 +28,10 @@ function App() {
       }
 
       const data = await response.json();
-      const shortUrl = `https://snipsnap-backend.onrender.com/${data.shortCode}`;
-      const qrCodeUrl = `https://snipsnap-backend.onrender.com/qr/${data.shortCode}`;
+
+      const shortUrl = `https://snipsnap-backend.onrender.com/${data.shortCode}`; // ✅ used for redirection
       const statsUrl = `https://snipsnap-backend.onrender.com/stats/${data.shortCode}`;
+      const qrCodeUrl = data.qrPath ? `data:image/png;base64,${data.qrPath}` : null; // ✅ show QR
 
       setResult({ shortUrl, qrCodeUrl, statsUrl });
     } catch (err) {
@@ -46,7 +48,7 @@ function App() {
           🔗 SnipSnap URL Shortener
         </h1>
 
-        <ShortenForm onShorten={handleShorten} /> {/* ✅ FIXED */}
+        <ShortenForm onShorten={handleShorten} />
 
         {loading && (
           <p className="text-center text-blue-600 mt-4">⏳ Generating your short URL...</p>

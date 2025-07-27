@@ -1,5 +1,4 @@
 // src/components/ResultBox.jsx
-
 import { useState } from "react";
 
 const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
@@ -41,7 +40,7 @@ const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
           />
           <a
             href={qrCodeUrl}
-            download
+            download="qr-code.png"
             className="text-sm text-blue-600 underline"
           >
             ⬇ Download QR Code

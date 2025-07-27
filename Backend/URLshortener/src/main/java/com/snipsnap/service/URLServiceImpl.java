@@ -1,3 +1,4 @@
+// src/main/java/com/snipsnap/service/URLServiceImpl.java
 package com.snipsnap.service;
 
 import com.google.zxing.BarcodeFormat;
@@ -7,7 +8,6 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.snipsnap.dto.URLRequestDTO;
 import com.snipsnap.dto.URLResponseDTO;
-import com.snipsnap.enums.GenerationType;
 import com.snipsnap.exception.URLNotFoundException;
 import com.snipsnap.model.ShortURL;
 import com.snipsnap.repository.URLRepository;
@@ -31,45 +31,43 @@ public class URLServiceImpl implements URLService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-   @Override
-public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
-    String shortCode = (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty())
-            ? requestDTO.getCustomCode()
-            : generateShortCode();
+    @Override
+    public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
+        String shortCode = (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty())
+                ? requestDTO.getCustomCode()
+                : generateShortCode();
 
-    if (urlRepository.findByShortCode(shortCode).isPresent()) {
-        throw new RuntimeException("Custom short code already exists: " + shortCode);
-    }
-
-    ShortURL shortURL = new ShortURL();
-    shortURL.setShortCode(shortCode);
-    shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
-    shortURL.setCreatedAt(LocalDateTime.now());
-
-    int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
-    shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
-
-    // ✅ Generate QR only if checkbox is selected
-    if (requestDTO.isGenerateQRCode()) {
-        try {
-            String fullUrl = baseUrl + "/" + shortCode;
-            String qrBase64 = generateQRCodeBase64(fullUrl);
-           // don’t store qrBase64, just keep it in memory
-
-        } catch (Exception e) {
-            throw new RuntimeException("QR code generation failed");
+        if (urlRepository.findByShortCode(shortCode).isPresent()) {
+            throw new RuntimeException("Custom short code already exists: " + shortCode);
         }
+
+        ShortURL shortURL = new ShortURL();
+        shortURL.setShortCode(shortCode);
+        shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
+        shortURL.setCreatedAt(LocalDateTime.now());
+
+        int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
+        shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
+
+        // ✅ Generate QR Code
+        if (requestDTO.isGenerateQRCode()) {
+            try {
+                String fullUrl = baseUrl + "/" + shortCode;
+                String qrBase64 = generateQRCodeBase64(fullUrl);
+                shortURL.setQrImage(qrBase64);
+            } catch (Exception e) {
+                throw new RuntimeException("QR code generation failed: " + e.getMessage());
+            }
+        }
+
+        ShortURL saved = urlRepository.save(shortURL);
+
+        return new URLResponseDTO(
+                saved.getShortCode(),
+                saved.getOriginalUrl(),
+                saved.getQrImage()
+        );
     }
-
-    ShortURL saved = urlRepository.save(shortURL);
-
-    return new URLResponseDTO(
-    saved.getShortCode(),
-    saved.getOriginalUrl(),
-    generateQRCodeBase64(baseUrl + "/" + saved.getShortCode())  // ✅ return dynamically
-);
-}
-
 
     @Override
     public String getOriginalURL(String shortCode) {
@@ -95,19 +93,17 @@ public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    // ✅ QR Code to Base64 string
-   private String generateQRCodeBase64(String text) throws WriterException, IOException {
-    int width = 300;
-    int height = 300;
+    private String generateQRCodeBase64(String text) throws WriterException, IOException {
+        int width = 300;
+        int height = 300;
 
-    QRCodeWriter qrCodeWriter = new QRCodeWriter();
-    BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
 
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
-    byte[] qrBytes = outputStream.toByteArray();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+        byte[] qrBytes = outputStream.toByteArray();
 
-    return java.util.Base64.getEncoder().encodeToString(qrBytes);
-}
-
+        return Base64.getEncoder().encodeToString(qrBytes);
+    }
 }
