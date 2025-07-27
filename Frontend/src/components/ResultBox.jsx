@@ -1,7 +1,6 @@
-// src/components/ResultBox.jsx
 import { useState } from "react";
 
-const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
+const ResultBox = ({ shortCode, shortUrl, qrCodeUrl, statsUrl, onViewStats }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -11,17 +10,12 @@ const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
   };
 
   return (
-    <div className="bg-green-50 border border-green-300 p-6 rounded-2xl shadow-md w-full max-w-xl mx-auto mt-6 space-y-4">
-      <h2 className="text-lg font-semibold text-green-800">✅ Short URL Generated!</h2>
+    <div className="bg-white border border-green-300 p-6 rounded-2xl shadow-md w-full max-w-xl mx-auto mt-6 space-y-4">
+      <h2 className="text-lg font-semibold text-green-800">✅ Short URL Created!</h2>
 
-      <div className="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-gray-300">
-        <a
-          href={shortUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline break-all"
-        >
-          {shortUrl}
+      <div className="flex items-center justify-between bg-green-50 px-4 py-3 rounded-xl border border-gray-300">
+        <a href={shortUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">
+          {shortCode}
         </a>
         <button
           onClick={handleCopy}
@@ -33,14 +27,10 @@ const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
 
       {qrCodeUrl && (
         <div className="flex flex-col items-start space-y-2">
-          <img
-            src={qrCodeUrl}
-            alt="QR Code"
-            className="w-40 h-40 border rounded-xl"
-          />
+          <img src={qrCodeUrl} alt="QR Code" className="w-40 h-40 border rounded-xl" />
           <a
             href={qrCodeUrl}
-            download="qr-code.png"
+            download={`snipsnap_qr_${shortCode}.png`}
             className="text-sm text-blue-600 underline"
           >
             ⬇ Download QR Code
@@ -49,14 +39,12 @@ const ResultBox = ({ shortUrl, qrCodeUrl, statsUrl }) => {
       )}
 
       {statsUrl && (
-        <a
-          href={statsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-gray-600 underline"
+        <button
+          onClick={onViewStats}
+          className="text-sm text-white bg-orange-500 hover:bg-orange-600 px-3 py-2 rounded-lg transition"
         >
           📊 View URL Stats
-        </a>
+        </button>
       )}
     </div>
   );

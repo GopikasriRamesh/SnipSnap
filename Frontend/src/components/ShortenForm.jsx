@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FiLink, FiCode, FiClock, FiCheckCircle } from "react-icons/fi";
 
 const ShortenForm = ({ onShorten }) => {
   const [originalUrl, setOriginalUrl] = useState("");
@@ -21,55 +22,69 @@ const ShortenForm = ({ onShorten }) => {
       generateQR,
     };
 
-    onShorten(payload); // ✅ correctly call parent handler
+    onShorten(payload);
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-6 rounded-2xl shadow-md w-full max-w-xl mx-auto mt-10 space-y-5"
+      className="bg-gradient-to-br from-yellow-50 to-orange-100 p-8 rounded-3xl shadow-2xl w-full max-w-xl mx-auto mt-10 space-y-6"
     >
-      <h2 className="text-xl font-semibold text-gray-800">Shorten your URL 🔗</h2>
+      <h2 className="text-2xl font-extrabold text-orange-700 flex items-center gap-2">
+        <FiLink className="text-orange-500" /> Shorten a URL
+      </h2>
 
-      <input
-        type="url"
-        placeholder="Enter your long URL"
-        value={originalUrl}
-        onChange={(e) => setOriginalUrl(e.target.value)}
-        className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-        required
-      />
+      <div className="relative">
+        <input
+          type="url"
+          placeholder="Enter your long URL"
+          value={originalUrl}
+          onChange={(e) => setOriginalUrl(e.target.value)}
+          className="w-full border border-orange-300 bg-white rounded-xl p-4 pl-12 focus:ring-2 focus:ring-orange-400 outline-none"
+          required
+        />
+        <FiLink className="absolute top-1/2 left-4 -translate-y-1/2 text-orange-400 text-lg" />
+      </div>
 
-      <input
-        type="text"
-        placeholder="Optional custom short code (e.g. mylink123)"
-        value={customCode}
-        onChange={(e) => setCustomCode(e.target.value)}
-        className="w-full border border-gray-300 rounded-xl p-3"
-      />
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Optional custom short code"
+          value={customCode}
+          onChange={(e) => setCustomCode(e.target.value)}
+          className="w-full border border-orange-300 bg-white rounded-xl p-4 pl-12"
+        />
+        <FiCode className="absolute top-1/2 left-4 -translate-y-1/2 text-orange-400 text-lg" />
+      </div>
 
-      <input
-        type="number"
-        placeholder="Expiry in days (e.g. 30)"
-        value={expiryDays}
-        onChange={(e) => setExpiryDays(e.target.value)}
-        className="w-full border border-gray-300 rounded-xl p-3"
-      />
+      <div className="relative">
+        <input
+          type="number"
+          placeholder="Expiry in days"
+          value={expiryDays}
+          onChange={(e) => setExpiryDays(e.target.value)}
+          className="w-full border border-orange-300 bg-white rounded-xl p-4 pl-12"
+        />
+        <FiClock className="absolute top-1/2 left-4 -translate-y-1/2 text-orange-400 text-lg" />
+      </div>
 
-      <label className="flex items-center space-x-2 text-gray-700">
+      {/* <label className="flex items-center space-x-3 text-gray-700 font-medium">
         <input
           type="checkbox"
           checked={generateQR}
           onChange={() => setGenerateQR(!generateQR)}
+          className="accent-orange-600 w-5 h-5"
         />
-        <span>Generate QR Code</span>
-      </label>
+        <span className="flex items-center gap-1">
+          <FiCheckCircle /> Generate QR Code
+        </span>
+      </label> */}
 
       <button
         type="submit"
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition"
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-base py-3 rounded-xl shadow-lg transition-all duration-200"
       >
-        Shorten URL
+        Shorten Now
       </button>
     </form>
   );

@@ -12,6 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import java.net.URI;
+
 
 @RestController
 @RequestMapping("/")
@@ -24,18 +29,19 @@ public class URLController {
     @Autowired
     private URLRepository urlRepository;
 
-    @PostMapping("/shorten")
-    public ResponseEntity<URLResponseDTO> createShortURL(@RequestBody @Valid URLRequestDTO requestDTO) {
-        URLResponseDTO responseDTO = urlService.shortenURL(requestDTO);
-        return ResponseEntity.ok(responseDTO);
-    }
+   @PostMapping("/shorten")
+public ResponseEntity<URLResponseDTO> createShortURL(@RequestBody @Valid URLRequestDTO requestDTO) {
+    URLResponseDTO responseDTO = urlService.shortenURL(requestDTO);
+    return ResponseEntity.ok(responseDTO);
+}
 
-    @GetMapping("/{shortCode}")
-    public RedirectView redirectToOriginal(@PathVariable String shortCode) {
-        String originalUrl = urlService.getOriginalURL(shortCode);
-        return new RedirectView(originalUrl);
-    }
-
+ @GetMapping("/{shortCode}")
+public ResponseEntity<Void> redirectToOriginal(@PathVariable String shortCode) {
+    String originalUrl = urlService.getOriginalURL(shortCode);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setLocation(URI.create(originalUrl));
+    return new ResponseEntity<>(headers, HttpStatus.FOUND);
+}
     @GetMapping("/stats/{shortCode}")
     public ResponseEntity<URLStatsDTO> getURLStats(@PathVariable String shortCode) {
         ShortURL url = urlRepository.findByShortCode(shortCode)

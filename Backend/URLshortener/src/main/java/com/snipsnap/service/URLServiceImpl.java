@@ -1,4 +1,3 @@
-// src/main/java/com/snipsnap/service/URLServiceImpl.java
 package com.snipsnap.service;
 
 import com.google.zxing.BarcodeFormat;
@@ -13,7 +12,9 @@ import com.snipsnap.model.ShortURL;
 import com.snipsnap.repository.URLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,62 +32,62 @@ public class URLServiceImpl implements URLService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    @Override
-    public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
-        String shortCode = (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty())
-                ? requestDTO.getCustomCode()
-                : generateShortCode();
+   @Override
+public URLResponseDTO shortenURL(URLRequestDTO requestDTO) {
+    String shortCode = (requestDTO.getCustomCode() != null && !requestDTO.getCustomCode().isEmpty())
+            ? requestDTO.getCustomCode()
+            : generateShortCode();
 
-        if (urlRepository.findByShortCode(shortCode).isPresent()) {
-            throw new RuntimeException("Custom short code already exists: " + shortCode);
-        }
-
-        ShortURL shortURL = new ShortURL();
-        shortURL.setShortCode(shortCode);
-        shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
-        shortURL.setCreatedAt(LocalDateTime.now());
-
-        int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
-        shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
-
-        // ✅ Generate QR Code
-        if (requestDTO.isGenerateQRCode()) {
-            try {
-                String fullUrl = baseUrl + "/" + shortCode;
-                String qrBase64 = generateQRCodeBase64(fullUrl);
-                shortURL.setQrImage(qrBase64);
-            } catch (Exception e) {
-                throw new RuntimeException("QR code generation failed: " + e.getMessage());
-            }
-        }
-
-        ShortURL saved = urlRepository.save(shortURL);
-
-        return new URLResponseDTO(
-                saved.getShortCode(),
-                saved.getOriginalUrl(),
-                saved.getQrImage()
-        );
+    if (urlRepository.findByShortCode(shortCode).isPresent()) {
+        throw new RuntimeException("Custom short code already exists: " + shortCode);
     }
+
+    ShortURL shortURL = new ShortURL();
+    shortURL.setShortCode(shortCode);
+    shortURL.setOriginalUrl(requestDTO.getOriginalUrl());
+    shortURL.setCreatedAt(LocalDateTime.now());
+
+    int expiryDays = (requestDTO.getExpiryDays() != null) ? requestDTO.getExpiryDays() : 1;
+    shortURL.setExpiryAt(LocalDateTime.now().plusDays(expiryDays));
+
+    // ✅ Save the short URL to DB first
+    ShortURL saved = urlRepository.save(shortURL);
+
+    // ✅ Generate QR and update DB if requested
+    if (requestDTO.isGenerateQRCode()) {
+        try {
+            String fullUrl = baseUrl + "/" + saved.getShortCode();
+            String qrBase64 = generateQRCodeBase64(fullUrl);
+
+            saved.setQrImage(qrBase64);
+            urlRepository.save(saved);
+        } catch (Exception e) {
+            throw new RuntimeException("QR code generation failed: " + e.getMessage());
+        }
+    }
+
+    // ✅ Return response including QR
+    return new URLResponseDTO(
+            saved.getShortCode(),
+            saved.getOriginalUrl(),
+            saved.getQrImage()
+    );
+}
+
 
     @Override
     public String getOriginalURL(String shortCode) {
-        Optional<ShortURL> result = urlRepository.findByShortCode(shortCode);
+        ShortURL shortURL = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new URLNotFoundException("Short URL not found: " + shortCode));
 
-        if (result.isEmpty()) {
-            throw new URLNotFoundException("Short URL not found: " + shortCode);
-        }
-
-        ShortURL url = result.get();
-
-        if (url.getExpiryAt() != null && LocalDateTime.now().isAfter(url.getExpiryAt())) {
+        if (shortURL.getExpiryAt() != null && LocalDateTime.now().isAfter(shortURL.getExpiryAt())) {
             throw new URLNotFoundException("Short URL has expired.");
         }
 
-        url.setClickCount(url.getClickCount() + 1);
-        urlRepository.save(url);
+        shortURL.setClickCount(shortURL.getClickCount() + 1);
+        urlRepository.save(shortURL);
 
-        return url.getOriginalUrl();
+        return shortURL.getOriginalUrl();
     }
 
     private String generateShortCode() {
@@ -94,16 +95,10 @@ public class URLServiceImpl implements URLService {
     }
 
     private String generateQRCodeBase64(String text) throws WriterException, IOException {
-        int width = 300;
-        int height = 300;
-
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
-        byte[] qrBytes = outputStream.toByteArray();
-
-        return Base64.getEncoder().encodeToString(qrBytes);
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, 300, 300);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", stream);
+        return Base64.getEncoder().encodeToString(stream.toByteArray());
     }
 }

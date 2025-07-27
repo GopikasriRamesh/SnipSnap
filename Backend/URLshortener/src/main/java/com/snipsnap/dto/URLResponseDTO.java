@@ -3,13 +3,15 @@ package com.snipsnap.dto;
 public class URLResponseDTO {
     private String shortCode;
     private String originalUrl;
-    private String qrPath; // ✅ optional
+    private String qrPath; // ✅ Optional
 
+    // ✅ Constructor with 2 arguments (already exists)
     public URLResponseDTO(String shortCode, String originalUrl) {
         this.shortCode = shortCode;
         this.originalUrl = originalUrl;
     }
 
+    // ✅ Constructor with 3 arguments (needed now)
     public URLResponseDTO(String shortCode, String originalUrl, String qrPath) {
         this.shortCode = shortCode;
         this.originalUrl = originalUrl;
