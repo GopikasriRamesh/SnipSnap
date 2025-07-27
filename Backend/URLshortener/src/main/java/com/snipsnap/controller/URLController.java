@@ -15,6 +15,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequestMapping("/")
+@CrossOrigin(origins = "*")
 public class URLController {
 
     @Autowired
